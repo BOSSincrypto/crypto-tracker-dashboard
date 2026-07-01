@@ -7,24 +7,21 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
 // GitHub Pages deploy toggle:
-//   DEPLOY_TARGET=github-pages  → set Vite's base path (e.g. `/my-repo/`) so the
-//   emitted client bundle + SPA shell load correctly from a sub-path.
+//   DEPLOY_TARGET=github-pages  → set Vite's base path (e.g. `/my-repo/`) and build
+//   the server with the non-static `node-server` Nitro preset.
 //
-//   We intentionally do NOT:
-//     • switch to a static Nitro preset (e.g. "github_pages" / "static") — Nitro 3's
-//       Vite plugin fails to build for static presets (nitrojs/nitro#3843:
-//       "rollupOptions.input should not be an html file when building for SSR").
-//     • enable TanStack Start's built-in prerender — its preview-server looks for
-//       the server bundle at `dist/server/server.js`, but the Lovable/Nitro pipeline
-//       builds the server into `.output/server/`, so prerender throws
-//       ERR_MODULE_NOT_FOUND and aborts the build.
-//   Instead the normal (non-static) build runs, the client build emits a static SPA
-//   shell (`.output/public/index.html`) that hydrates client-side, and the deploy
-//   workflow uploads `.output/public` as-is. That is plenty for a local-first app
-//   whose data + live prices are all fetched from the browser.
+//   Why node-server + a custom prerender (scripts/prerender.mjs)?
+//     • Static Nitro presets are broken on Vite 8 (nitrojs/nitro#3843).
+//     • TanStack Start's own prerender is incompatible with the Lovable/Nitro pipeline:
+//       its preview-server imports `dist/server/server.js`, but Nitro builds the server
+//       into `.output/server/`, so prerender throws ERR_MODULE_NOT_FOUND.
+//     • There is no SPA build mode in this plugin version.
+//   So the normal build runs (client bundle + a Node-runnable server), then the deploy
+//   workflow starts that server and renders the homepage to real SSR HTML — complete
+//   with the `window.$_TSR` bootstrap TanStack needs to hydrate.
 //
-//   Locally / in the Lovable sandbox nothing changes: the default Cloudflare preset
-//   is used so dev + Lovable Publish keep working as before.
+//   Locally / in the Lovable sandbox nothing changes: the default Cloudflare preset is
+//   used so dev + Lovable Publish keep working as before.
 const isGithubPages = process.env.DEPLOY_TARGET === "github-pages";
 const basePath = process.env.VITE_BASE_PATH || "/";
 
@@ -36,5 +33,6 @@ export default defineConfig({
   },
   ...(isGithubPages && {
     vite: { base: basePath },
+    nitro: { preset: "node-server" },
   }),
 });

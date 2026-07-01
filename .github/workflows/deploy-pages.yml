@@ -26,6 +26,11 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
@@ -42,39 +47,25 @@ jobs:
             echo "path=/${REPO_NAME}/" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Build (static client bundle for GitHub Pages)
+      - name: Build (client bundle + Node server)
         env:
           DEPLOY_TARGET: github-pages
+          NITRO_PRESET: node-server
           VITE_BASE_PATH: ${{ steps.base.outputs.path }}
         run: bun run build
 
-      - name: Ensure SPA shell + 404 fallback
+      - name: Prerender homepage to static HTML
         env:
-          BASE_PATH: ${{ steps.base.outputs.path }}
+          VITE_BASE_PATH: ${{ steps.base.outputs.path }}
+        run: node scripts/prerender.mjs
+
+      - name: Verify SSR output + add 404 fallback
         run: |
           cd .output/public
-          # The client build emits a static SPA shell as index.html. If for any
-          # reason it is absent, synthesize a minimal one that boots the client
-          # bundle so the deploy never ships a broken site.
-          if [ ! -f index.html ]; then
-            JS=$(ls assets/index-*.js 2>/dev/null | head -n1)
-            CSS=$(ls assets/styles-*.css 2>/dev/null | head -n1)
-            echo "::warning::index.html missing from client build; synthesizing SPA shell (js=$JS css=$CSS)"
-            cat > index.html <<HTMLEOF
-          <!doctype html>
-          <html lang="en" class="dark"><head>
-          <meta charset="utf-8" />
-          <meta name="viewport" content="width=device-width, initial-scale=1" />
-          <meta name="theme-color" content="#0b1120" />
-          <link rel="icon" href="${BASE_PATH}favicon.ico" />
-          ${CSS:+<link rel="stylesheet" href="${BASE_PATH}${CSS}" />}
-          </head>
-          <body><script type="module" src="${BASE_PATH}${JS}"></script></body>
-          </html>
-          HTMLEOF
-          fi
-          test -f index.html || { echo "::error::index.html missing — client build did not emit an SPA shell"; exit 1; }
-          # GitHub Pages needs a 404.html that re-serves the app for deep links.
+          # index.html must contain the TanStack bootstrap; otherwise the client
+          # would hydrate against nothing and show a blank page.
+          grep -q '$_TSR' index.html || { echo "::error::index.html missing TanStack bootstrap data"; exit 1; }
+          # SPA fallback so deep links re-serve the app.
           cp index.html 404.html
           touch .nojekyll
 
