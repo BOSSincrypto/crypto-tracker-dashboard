@@ -35,7 +35,7 @@ export default defineConfig({
     ...(isGithubPages && {
       prerender: {
         enabled: true,
-        crawlLinks: true,
+        crawlLinks: false, // single-page app: prerender only the explicit routes below (crawling follows a base-path link that 500s under SSR).
         // GH Pages is static — sitemap.xml is emitted by prerendering the
         // server route, alongside the app shell.
         routes: ["/", "/sitemap.xml"],
