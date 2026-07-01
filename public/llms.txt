@@ -1,0 +1,7 @@
+# Crypto Portfolio Tracker
+
+> Local-first crypto portfolio tracker with live CoinGecko prices, cost-basis P&L, allocation charts, risk metrics and CSV/JSON import & export. No signup — all data stays in the browser.
+
+## Pages
+
+- [Home](/): Dashboard with holdings, live prices, P&L, allocation, risk metrics, monthly cash-flow, and CSV/JSON import & export.

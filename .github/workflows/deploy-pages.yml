@@ -1,0 +1,74 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Derive base path
+        id: base
+        run: |
+          # For "user.github.io" repos the site lives at the domain root
+          # (base = "/"); for any other repo it lives at "/<repo>/".
+          REPO_NAME="${GITHUB_REPOSITORY##*/}"
+          OWNER="${GITHUB_REPOSITORY%%/*}"
+          if [ "$REPO_NAME" = "${OWNER}.github.io" ]; then
+            echo "path=/" >> "$GITHUB_OUTPUT"
+          else
+            echo "path=/${REPO_NAME}/" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build (static, GitHub Pages preset)
+        env:
+          DEPLOY_TARGET: github-pages
+          NITRO_PRESET: github_pages
+          VITE_BASE_PATH: ${{ steps.base.outputs.path }}
+        run: bun run build
+
+      - name: SPA fallback + Jekyll opt-out
+        run: |
+          # GitHub Pages needs a 404.html that re-serves the app for deep
+          # links to work (single client-side route in this app, but this
+          # future-proofs any router expansion).
+          cp .output/public/index.html .output/public/404.html
+          touch .output/public/.nojekyll
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .output/public
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
