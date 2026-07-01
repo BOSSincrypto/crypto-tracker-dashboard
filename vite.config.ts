@@ -7,9 +7,17 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
 // GitHub Pages deploy toggle:
-//   DEPLOY_TARGET=github-pages  → use Nitro's `github_pages` preset, which
-//   emits a static bundle in `.output/public` ready to upload. The base path
-//   under which the site is served (e.g. `/my-repo/`) comes from VITE_BASE_PATH.
+//   DEPLOY_TARGET=github-pages  → prerender the site to real static HTML under
+//   `.output/public` and set Vite's base path (e.g. `/my-repo/`) so assets load
+//   correctly when served from a sub-path.
+//
+//   IMPORTANT: we intentionally do NOT switch to a static Nitro preset here
+//   (e.g. "github_pages" / "static"). Nitro 3's Vite plugin currently fails the
+//   build for any static preset — see nitrojs/nitro#3843
+//   ("rollupOptions.input should not be an html file when building for SSR").
+//   The default (non-static) preset builds cleanly and still writes the
+//   prerendered site under `.output/public`, which is all GitHub Pages needs; the
+//   workflow uploads that directory and ignores the generated server bundle.
 //
 //   Locally / in the Lovable sandbox nothing changes: the default Cloudflare
 //   preset is used so dev + Lovable Publish keep working as before.
@@ -36,6 +44,5 @@ export default defineConfig({
   },
   ...(isGithubPages && {
     vite: { base: basePath },
-    nitro: { preset: "github_pages" },
   }),
 });

@@ -42,18 +42,19 @@ jobs:
             echo "path=/${REPO_NAME}/" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Build (static, GitHub Pages preset)
+      - name: Build (prerendered static site)
         env:
           DEPLOY_TARGET: github-pages
-          NITRO_PRESET: github_pages
           VITE_BASE_PATH: ${{ steps.base.outputs.path }}
         run: bun run build
 
-      - name: SPA fallback + Jekyll opt-out
+      - name: Verify build output & add SPA fallback
         run: |
-          # GitHub Pages needs a 404.html that re-serves the app for deep
-          # links to work (single client-side route in this app, but this
-          # future-proofs any router expansion).
+          # The prerender step must have produced a homepage we can serve.
+          test -f .output/public/index.html || { echo "::error::index.html missing — prerender of '/' failed"; exit 1; }
+          # GitHub Pages needs a 404.html that re-serves the app for deep links
+          # (single client-side route in this app, but this future-proofs any
+          # router expansion).
           cp .output/public/index.html .output/public/404.html
           touch .output/public/.nojekyll
 
