@@ -7,40 +7,32 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
 // GitHub Pages deploy toggle:
-//   DEPLOY_TARGET=github-pages  → prerender the site to real static HTML under
-//   `.output/public` and set Vite's base path (e.g. `/my-repo/`) so assets load
-//   correctly when served from a sub-path.
+//   DEPLOY_TARGET=github-pages  → set Vite's base path (e.g. `/my-repo/`) so the
+//   emitted client bundle + SPA shell load correctly from a sub-path.
 //
-//   IMPORTANT: we intentionally do NOT switch to a static Nitro preset here
-//   (e.g. "github_pages" / "static"). Nitro 3's Vite plugin currently fails the
-//   build for any static preset — see nitrojs/nitro#3843
-//   ("rollupOptions.input should not be an html file when building for SSR").
-//   The default (non-static) preset builds cleanly and still writes the
-//   prerendered site under `.output/public`, which is all GitHub Pages needs; the
-//   workflow uploads that directory and ignores the generated server bundle.
+//   We intentionally do NOT:
+//     • switch to a static Nitro preset (e.g. "github_pages" / "static") — Nitro 3's
+//       Vite plugin fails to build for static presets (nitrojs/nitro#3843:
+//       "rollupOptions.input should not be an html file when building for SSR").
+//     • enable TanStack Start's built-in prerender — its preview-server looks for
+//       the server bundle at `dist/server/server.js`, but the Lovable/Nitro pipeline
+//       builds the server into `.output/server/`, so prerender throws
+//       ERR_MODULE_NOT_FOUND and aborts the build.
+//   Instead the normal (non-static) build runs, the client build emits a static SPA
+//   shell (`.output/public/index.html`) that hydrates client-side, and the deploy
+//   workflow uploads `.output/public` as-is. That is plenty for a local-first app
+//   whose data + live prices are all fetched from the browser.
 //
-//   Locally / in the Lovable sandbox nothing changes: the default Cloudflare
-//   preset is used so dev + Lovable Publish keep working as before.
+//   Locally / in the Lovable sandbox nothing changes: the default Cloudflare preset
+//   is used so dev + Lovable Publish keep working as before.
 const isGithubPages = process.env.DEPLOY_TARGET === "github-pages";
 const basePath = process.env.VITE_BASE_PATH || "/";
 
 export default defineConfig({
   tanstackStart: {
-    // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
-    // nitro/vite builds from this
+    // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR
+    // error wrapper). nitro/vite builds from this.
     server: { entry: "server" },
-    // Prerender the homepage to real HTML so GitHub Pages can serve it as a
-    // static file. Client-side hydration still runs and CoinGecko fetches
-    // stay live from the browser (React Query polls every 60s).
-    ...(isGithubPages && {
-      prerender: {
-        enabled: true,
-        crawlLinks: false, // single-page app: prerender only the explicit routes below (crawling follows a base-path link that 500s under SSR).
-        // GH Pages is static — sitemap.xml is emitted by prerendering the
-        // server route, alongside the app shell.
-        routes: ["/", "/sitemap.xml"],
-      },
-    }),
   },
   ...(isGithubPages && {
     vite: { base: basePath },

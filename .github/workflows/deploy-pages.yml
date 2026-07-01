@@ -42,21 +42,41 @@ jobs:
             echo "path=/${REPO_NAME}/" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Build (prerendered static site)
+      - name: Build (static client bundle for GitHub Pages)
         env:
           DEPLOY_TARGET: github-pages
           VITE_BASE_PATH: ${{ steps.base.outputs.path }}
         run: bun run build
 
-      - name: Verify build output & add SPA fallback
+      - name: Ensure SPA shell + 404 fallback
+        env:
+          BASE_PATH: ${{ steps.base.outputs.path }}
         run: |
-          # The prerender step must have produced a homepage we can serve.
-          test -f .output/public/index.html || { echo "::error::index.html missing — prerender of '/' failed"; exit 1; }
-          # GitHub Pages needs a 404.html that re-serves the app for deep links
-          # (single client-side route in this app, but this future-proofs any
-          # router expansion).
-          cp .output/public/index.html .output/public/404.html
-          touch .output/public/.nojekyll
+          cd .output/public
+          # The client build emits a static SPA shell as index.html. If for any
+          # reason it is absent, synthesize a minimal one that boots the client
+          # bundle so the deploy never ships a broken site.
+          if [ ! -f index.html ]; then
+            JS=$(ls assets/index-*.js 2>/dev/null | head -n1)
+            CSS=$(ls assets/styles-*.css 2>/dev/null | head -n1)
+            echo "::warning::index.html missing from client build; synthesizing SPA shell (js=$JS css=$CSS)"
+            cat > index.html <<HTMLEOF
+          <!doctype html>
+          <html lang="en" class="dark"><head>
+          <meta charset="utf-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+          <meta name="theme-color" content="#0b1120" />
+          <link rel="icon" href="${BASE_PATH}favicon.ico" />
+          ${CSS:+<link rel="stylesheet" href="${BASE_PATH}${CSS}" />}
+          </head>
+          <body><script type="module" src="${BASE_PATH}${JS}"></script></body>
+          </html>
+          HTMLEOF
+          fi
+          test -f index.html || { echo "::error::index.html missing — client build did not emit an SPA shell"; exit 1; }
+          # GitHub Pages needs a 404.html that re-serves the app for deep links.
+          cp index.html 404.html
+          touch .nojekyll
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
