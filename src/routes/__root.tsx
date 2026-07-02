@@ -98,7 +98,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap",
       },
-      { rel: "icon", href: `${import.meta.env.BASE_URL}favicon.ico`, type: "image/x-icon" },
+      // Vector icon for modern browsers (razor-sharp on retina), with a
+      // multi-resolution ICO fallback for legacy tabs/bookmarks, an Apple touch
+      // icon, and a PWA manifest — all themed to the dark "trading terminal"
+      // palette. See scripts/generate-icons.py to regenerate the asset set.
+      { rel: "icon", href: `${import.meta.env.BASE_URL}favicon.svg`, type: "image/svg+xml" },
+      { rel: "icon", href: `${import.meta.env.BASE_URL}favicon.ico`, sizes: "48x48 32x32 16x16" },
+      { rel: "apple-touch-icon", href: `${import.meta.env.BASE_URL}apple-touch-icon.png` },
+      { rel: "manifest", href: `${import.meta.env.BASE_URL}site.webmanifest` },
     ],
     scripts: [
       {

@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Crypto Portfolio Tracker">
+  <title>Crypto Portfolio Tracker</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0b1120"/>
+      <stop offset="1" stop-color="#1e293b"/>
+    </linearGradient>
+    <linearGradient id="area" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#34d399" stop-opacity="0.38"/>
+      <stop offset="1" stop-color="#34d399" stop-opacity="0"/>
+    </linearGradient>
+    <clipPath id="round"><rect width="512" height="512" rx="115" ry="115"/></clipPath>
+  </defs>
+  <g clip-path="url(#round)">
+    <rect width="512" height="512" fill="url(#bg)"/>
+    <g stroke="#94a3b8" stroke-opacity="0.10" stroke-width="2">
+      <line x1="51" y1="154" x2="461" y2="154"/>
+      <line x1="51" y1="256" x2="461" y2="256"/>
+      <line x1="51" y1="358" x2="461" y2="358"/>
+    </g>
+    <path d="M69 458 L69 412 C86 400, 136 344, 169 338 C202 332, 235 392, 266 376 C298 360, 333 278, 358 241 C383 204, 408 168, 418 154 L418 458 Z" fill="url(#area)"/>
+    <path d="M69 412 C86 400, 136 344, 169 338 C202 332, 235 392, 266 376 C298 360, 333 278, 358 241 C383 204, 408 168, 418 154"
+          fill="none" stroke="#34d399" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M418 154 L433 193 L377 153 Z" fill="#6ee7b7"/>
+  </g>
+</svg>
